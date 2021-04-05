@@ -1,0 +1,5 @@
+
+*.txt
+api-info/alarm.py
+api-info/api_info.py
+*.pyc

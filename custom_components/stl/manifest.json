@@ -1,0 +1,9 @@
+{
+    "domain": "stl",
+    "name": "Svenska Trygghetslosningar",
+    "documentation": "https://github.com/gjohansson-ST/stl/blob/master/readme.md",
+    "issue_tracker": "https://github.com/gjohansson-ST/stl/issues",
+    "codeowners": ["@gjohansson-ST"],
+    "version": "v0.1.0",
+    "config_flow": true
+}

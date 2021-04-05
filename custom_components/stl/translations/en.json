@@ -1,0 +1,25 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Account is already configured"
+        },
+        "error": {
+            "auth_error": "Username and/or password is incorrect.",
+            "connection_error": "Failed to connect"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "username": "E-mail address",
+                    "password": "Password",
+                    "code": "Master code for alarm",
+                    "panel_id": "Panel ID (serial)",
+                    "app_id": "Generated application id (see readme)"
+                },
+                "description": "Integration with Svenska Trygghetslosningar",
+                "title": "Svenska Trygghetslosningar"
+            }
+        },
+        "title": "Svenska Trygghetslosningar"
+    }
+}
