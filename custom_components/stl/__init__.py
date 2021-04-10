@@ -149,7 +149,7 @@ async def async_setup_entry(hass, entry):
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, "visonic_" + str(api._panel_id))},
         manufacturer="Visonic",
-        name="1B7EEB",
+        name="PowerMaster 360R - 1B7EEB",
         model="PowerMaster 360R",
         sw_version="7.0",
     )

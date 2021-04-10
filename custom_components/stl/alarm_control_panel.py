@@ -75,7 +75,7 @@ class STLAlarmPanel(CoordinatorEntity, STLAlarmAlarmDevice):
 
     @property
     def name(self):
-        return f"STL {self._hub.alarm_id}"
+        return f"Alarm Panel {self._hub.alarm_id}"
 
     @property
     def changed_by(self):
