@@ -2,5 +2,6 @@
   "name": "Svenska Trygghetslosningar",
   "render_readme": true,
   "domains": ["alarm_control_panel"],
-  "iot_class": "Cloud Polling"
+  "iot_class": "Cloud Polling",
+  "country": ["SE"]
 }
