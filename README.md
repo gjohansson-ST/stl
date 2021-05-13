@@ -1,4 +1,4 @@
-[![Svenska Trygghetslosningar](https://github.com/gjohansson-ST/stl/blob/main/img/logo.png)](https://www.stl.nu/)
+[![Svenska Trygghetslosningar](https://github.com/gjohansson-ST/stl/blob/main/img/icon.png)](https://www.stl.nu/)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge&cacheSeconds=3600)](https://github.com/custom-components/hacs)
 [![size_badge](https://img.shields.io/github/repo-size/gjohansson-ST/stl?style=for-the-badge&cacheSeconds=3600)](https://github.com/gjohansson-ST/stl)
