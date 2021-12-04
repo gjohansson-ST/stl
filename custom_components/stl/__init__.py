@@ -217,7 +217,8 @@ class STLAlarmHub(object):
             json_data = await response.json()
             try:
                 self._state = json_data["partitions"][0]["state"]
-                self._status = json_data["partitions"][0]["status"]
+                if "status" in json_data["partitions"][0]:
+                    self._status = json_data["partitions"][0]["status"]
                 self._is_online = json_data["connected"]
                 self._is_ready = json_data["partitions"][0]["ready"]
             except aiohttp.ClientConnectorError as error:

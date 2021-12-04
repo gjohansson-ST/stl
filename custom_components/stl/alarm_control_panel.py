@@ -2,7 +2,6 @@
 import logging
 
 from homeassistant.components.alarm_control_panel import (
-    FORMAT_NUMBER,
     AlarmControlPanelEntity,
     AlarmControlPanelEntityDescription,
 )
@@ -59,7 +58,7 @@ class STLAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         self._attr_state = self._hub.alarm_state
         self._attr_changed_by = self._hub.alarm_changed_by
         self._attr_code_arm_required = False
-        self._attr_code_format = FORMAT_NUMBER
+        self._attr_code_format = None
         self._attr_supported_features = SUPPORT_ALARM_ARM_HOME | SUPPORT_ALARM_ARM_AWAY
         self._state: str = STATE_ALARM_PENDING
         self._changed_by: str = "unknown"
@@ -81,7 +80,7 @@ class STLAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         }
 
     @property
-    def extra_state_attributes(self) -> dict(str, str):
+    def extra_state_attributes(self) -> dict:
         """Return additional information."""
         return {
             "Display name": self._displayname,
