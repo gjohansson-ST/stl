@@ -1,29 +1,24 @@
 """Adds config flow for Sector integration."""
 import logging
-
-import voluptuous as vol
-import aiohttp
 import uuid
 
-import homeassistant.helpers.config_validation as cv
-from homeassistant import config_entries, core, exceptions
-from homeassistant.core import callback
+import voluptuous as vol
+
+from homeassistant import config_entries, exceptions
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    DOMAIN,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_CODE,
     CONF_APP_ID,
+    CONF_CODE,
     CONF_PANEL,
-    MIN_SCAN_INTERVAL,
-    API_URL,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    DOMAIN,
+    URL_LOGIN,
+    URL_PANEL_LOGIN,
 )
-
-url_base = API_URL
-url_panel_login = url_base + "/panel/login"
-url_login = url_base + "/auth"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,12 +34,14 @@ DATA_SCHEMA = vol.Schema(
 
 
 async def validate_input(
-    hass: core.HomeAssistant, username, password, app_id, code, panel_id
-):
+    hass: HomeAssistant,
+    username: str,
+    password: str,
+    app_id: str,
+    code: str,
+    panel_id: str,
+) -> None:
     """Validate the user input allows us to connect."""
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if entry.data["username"] == username:
-            raise AlreadyConfigured
 
     message_headers = {
         "Content-Type": "application/json",
@@ -57,7 +54,7 @@ async def validate_input(
 
     websession = async_get_clientsession(hass)
     login = await websession.post(
-        url_login,
+        URL_LOGIN,
         headers=message_headers,
         json={
             "email": username,
@@ -65,14 +62,14 @@ async def validate_input(
             "app_id": app_id,
         },
     )
-    if login.status == 200 or login.status == 204:
+    if login.status in (200, 204):
         token_user = await login.json()
         message_headers["User-Token"] = token_user["user_token"]
     else:
         raise CannotConnect
 
     session = await websession.post(
-        url_panel_login,
+        URL_PANEL_LOGIN,
         headers=message_headers,
         json={
             "user_code": code,
@@ -82,13 +79,11 @@ async def validate_input(
         },
     )
 
-    if session.status == 200 or session.status == 204:
+    if session.status in (200, 204):
         token_session = await session.json()
         message_headers["Session-Token"] = token_session["session_token"]
     else:
         raise CannotConnect
-
-    return True
 
 
 class STLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -102,19 +97,16 @@ class STLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            username = user_input[CONF_USERNAME].replace(" ", "")
-            password = user_input[CONF_PASSWORD].replace(" ", "")
-            app_id = user_input[CONF_APP_ID].replace(" ", "")
-            code = user_input[CONF_CODE].replace(" ", "")
-            panel_id = user_input[CONF_PANEL].replace(" ", "")
+            username: str = user_input[CONF_USERNAME].replace(" ", "")
+            password: str = user_input[CONF_PASSWORD].replace(" ", "")
+            app_id: str = user_input[CONF_APP_ID].replace(" ", "")
+            code: str = user_input[CONF_CODE].replace(" ", "")
+            panel_id: str = user_input[CONF_PANEL].replace(" ", "")
 
             try:
                 await validate_input(
                     self.hass, username, password, app_id, code, panel_id
                 )
-
-            except AlreadyConfigured:
-                return self.async_abort(reason="already_configured")
             except CannotConnect:
                 return self.async_show_form(
                     step_id="user",
@@ -137,7 +129,6 @@ class STLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PANEL: panel_id,
                 },
             )
-            _LOGGER.info("Login succesful. Config entry created.")
 
         return self.async_show_form(
             step_id="user",
@@ -148,7 +139,3 @@ class STLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
-
-
-class AlreadyConfigured(exceptions.HomeAssistantError):
-    """Error to indicate host is already configured."""

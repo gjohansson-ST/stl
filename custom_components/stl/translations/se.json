@@ -1,0 +1,24 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Konto är redan konfigurerat"
+        },
+        "error": {
+            "connection_error": "Kunde inte ansluta"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "username": "E-post adress",
+                    "password": "Lösenord",
+                    "code": "Kod för alarm",
+                    "panel_id": "Panel ID (serienr)",
+                    "app_id": "Genererat app id (se readme)"
+                },
+                "description": "Integration med Svenska Trygghetslösningar",
+                "title": "Svenska Trygghetslösningar"
+            }
+        },
+        "title": "Svenska Trygghetslösningar"
+    }
+}

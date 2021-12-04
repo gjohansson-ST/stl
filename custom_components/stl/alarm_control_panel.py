@@ -1,51 +1,75 @@
 """Adds Alarm Panel for STL integration."""
 import logging
-from datetime import timedelta
+
 from homeassistant.components.alarm_control_panel import (
-    AlarmControlPanelEntity,
     FORMAT_NUMBER,
-)
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    UpdateFailed,
+    AlarmControlPanelEntity,
+    AlarmControlPanelEntityDescription,
 )
 from homeassistant.components.alarm_control_panel.const import (
     SUPPORT_ALARM_ARM_AWAY,
     SUPPORT_ALARM_ARM_HOME,
 )
-from homeassistant.const import (
-    STATE_ALARM_ARMED_AWAY,
-    STATE_ALARM_ARMED_HOME,
-    STATE_ALARM_DISARMED,
-    STATE_ALARM_PENDING,
-    STATE_ALARM_ARMING,
-    STATE_ALARM_DISARMING,
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_ALARM_PENDING
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
 )
-from .const import (
-    DOMAIN,
-)
+
+from .__init__ import STLAlarmHub
+from .const import CONF_PANEL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """ No setup from yaml """
-    return True
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set entry for Alarm Panel."""
+
+    stl_hub: STLAlarmHub = hass.data[DOMAIN][entry.entry_id]["api"]
+    coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "coordinator"
+    ]
+    panel_id: str = entry.data[CONF_PANEL]
+    description = AlarmControlPanelEntityDescription(
+        key=panel_id, name=f"Alarm Panel {panel_id}"
+    )
+    async_add_entities([STLAlarmPanel(stl_hub, coordinator, description)])
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+class STLAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
+    """STL Alarm Panel."""
 
-    stl_hub = hass.data[DOMAIN][entry.entry_id]["api"]
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    def __init__(
+        self,
+        hub: STLAlarmHub,
+        coordinator: DataUpdateCoordinator,
+        description: AlarmControlPanelEntityDescription,
+    ) -> None:
+        """Initizialize STL Alarm Panel."""
+        self._hub = hub
+        super().__init__(coordinator)
+        self._attr_name = description.name
+        self._attr_unique_id = f"stl_panel_{str(description.key)}"
+        self._attr_state = self._hub.alarm_state
+        self._attr_changed_by = self._hub.alarm_changed_by
+        self._attr_code_arm_required = False
+        self._attr_code_format = FORMAT_NUMBER
+        self._attr_supported_features = SUPPORT_ALARM_ARM_HOME | SUPPORT_ALARM_ARM_AWAY
+        self._state: str = STATE_ALARM_PENDING
+        self._changed_by: str = "unknown"
+        self._displayname = self._hub.alarm_displayname
+        self._isonline = self._hub.alarm_isonline
+        self._isready = self._hub.alarm_ready
+        self._panel_id = self._hub.alarm_id
 
-    async_add_entities([STLAlarmPanel(stl_hub, coordinator)])
-
-    return True
-
-
-class STLAlarmAlarmDevice(AlarmControlPanelEntity):
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information."""
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
@@ -56,50 +80,9 @@ class STLAlarmAlarmDevice(AlarmControlPanelEntity):
             "via_device": (DOMAIN, f"visonic_{str(self._hub.alarm_id)}"),
         }
 
-
-class STLAlarmPanel(CoordinatorEntity, STLAlarmAlarmDevice):
-    def __init__(self, hub, coordinator):
-        self._hub = hub
-        super().__init__(coordinator)
-        self._state = STATE_ALARM_PENDING
-        self._changed_by = None
-        self._displayname = self._hub.alarm_displayname
-        self._isonline = self._hub.alarm_isonline
-        self._isready = self._hub.alarm_ready
-        self._panel_id = self._hub.alarm_id
-
     @property
-    def unique_id(self):
-        """Return a unique ID to use for this sensor."""
-        return f"stl_panel_{str(self._hub.alarm_id)}"
-
-    @property
-    def name(self):
-        return f"Alarm Panel {self._hub.alarm_id}"
-
-    @property
-    def changed_by(self):
-        return self._hub.alarm_changed_by
-
-    @property
-    def supported_features(self) -> int:
-        return SUPPORT_ALARM_ARM_HOME | SUPPORT_ALARM_ARM_AWAY
-
-    @property
-    def code_arm_required(self):
-        return False
-
-    @property
-    def state(self):
-        return self._hub.alarm_state
-
-    @property
-    def code_format(self):
-        """Return one or more digits/characters."""
-        return None
-
-    @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self) -> dict(str, str):
+        """Return additional information."""
         return {
             "Display name": self._displayname,
             "Is Online": self._isonline,
@@ -107,20 +90,17 @@ class STLAlarmPanel(CoordinatorEntity, STLAlarmAlarmDevice):
             "Serial": self._panel_id,
         }
 
-    async def async_alarm_arm_home(self, code=None):
+    async def async_alarm_arm_home(self, code=None) -> None:
+        """Alarm home."""
         command = "partial"
-
-        _LOGGER.debug("Trying to arm home")
         await self._hub.triggeralarm(command, code=code)
 
-    async def async_alarm_disarm(self, code=None):
+    async def async_alarm_disarm(self, code=None) -> None:
+        """Alarm off."""
         command = "disarm"
-
-        _LOGGER.debug("Trying to disarm")
         await self._hub.triggeralarm(command, code=code)
 
-    async def async_alarm_arm_away(self, code=None):
+    async def async_alarm_arm_away(self, code=None) -> None:
+        """Alarm away."""
         command = "full"
-
-        _LOGGER.debug("Trying to arm away")
         await self._hub.triggeralarm(command, code=code)
