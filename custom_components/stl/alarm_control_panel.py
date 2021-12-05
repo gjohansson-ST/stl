@@ -71,8 +71,8 @@ class STLAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def device_info(self) -> DeviceInfo:
         """Return device information."""
         return {
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "name": self.name,
+            "identifiers": {(DOMAIN, self._attr_unique_id)},
+            "name": self._attr_name,
             "manufacturer": "Visonic",
             "model": "PowerMaster 360R",
             "sw_version": "7.0",

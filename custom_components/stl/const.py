@@ -24,4 +24,4 @@ CONF_CODE = "code"
 
 MIN_SCAN_INTERVAL = 30
 
-PLATFORMS = ["alarm_control_panel"]
+PLATFORMS = ["alarm_control_panel", "binary_sensor"]

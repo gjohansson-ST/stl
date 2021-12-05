@@ -15,6 +15,8 @@ from homeassistant.const import (
     STATE_ALARM_DISARMED,
     STATE_ALARM_DISARMING,
     STATE_ALARM_PENDING,
+    STATE_OFF,
+    STATE_ON,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -31,6 +33,7 @@ from .const import (
     DOMAIN,
     MIN_SCAN_INTERVAL,
     PLATFORMS,
+    URL_ALL_DEVICES,
     URL_EVENTS,
     URL_LOGIN,
     URL_PANEL_INFO,
@@ -141,6 +144,7 @@ class STLAlarmHub(object):
         self._app_id = app_id
         self._code = code
         self._panel: dict = {}
+        self._devices: list = []
         self._panel_id = panel_id
         self._access_token: str = ""
         self._session_token: str = ""
@@ -157,6 +161,30 @@ class STLAlarmHub(object):
             return None
 
         return str(panel["model"]) + str(panel["serial"])
+
+    async def get_door_sensors(self) -> list:
+        """Return information on door sensors."""
+        _generated_list: list = []
+        for device in self._devices:
+            if (
+                device["zone_type"] == "PERIMETER"
+                and device["subtype"] == "MC303_VANISH"
+            ):
+                _name = device["traits"]["location"]["name"]
+                _id = device["id"]
+                _status = STATE_OFF
+                if device["warnings"]:
+                    for warning in device["warnings"]:
+                        if warning["type"] == "OPENED":
+                            _status = STATE_ON
+                _generated_list.append(
+                    {
+                        "name": _name,
+                        "id": _id,
+                        "status": _status,
+                    }
+                )
+        return _generated_list
 
     async def triggeralarm(self, command, code) -> None:
         """Change state of alarm."""
@@ -211,6 +239,12 @@ class STLAlarmHub(object):
             if not response:
                 raise UpdateFailed
             self._panel = await response.json()
+
+        if not self._devices:
+            response = await self._request(URL_ALL_DEVICES)
+            if not response:
+                raise UpdateFailed
+            self._devices = await response.json()
 
         response = await self._request(URL_STATUS)
         if response:
