@@ -14,12 +14,12 @@
 
 **Date created:** 2021-04-05
 
-**Last update:** 2021-12-04
+**Last update:** 2021-12-19
 
 ---
 
 Integrates with Swedish Svenska Trygghetslösningar home alarm system.
-Currently supporting alarm_panel but will extend to binary sensors with next version.
+Currently supporting alarm_panel and doorsensors
 Would most likely work with any Visonic alarm using api version 7.0
 
 Binary sensors will be added as part of next release for door sensors to be included.
