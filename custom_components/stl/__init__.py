@@ -163,28 +163,15 @@ class STLAlarmHub(object):
         return str(panel["model"]) + str(panel["serial"])
 
     async def get_door_sensors(self) -> list:
-        """Return information on door sensors."""
-        _generated_list: list = []
-        for device in self._devices:
-            if (
-                device["zone_type"] == "PERIMETER"
-                and device["subtype"] == "MC303_VANISH"
-            ):
-                _name = device["traits"]["location"]["name"]
-                _id = device["id"]
-                _status = STATE_OFF
-                if device["warnings"]:
-                    for warning in device["warnings"]:
-                        if warning["type"] == "OPENED":
-                            _status = STATE_ON
-                _generated_list.append(
-                    {
-                        "name": _name,
-                        "id": _id,
-                        "status": _status,
-                    }
-                )
-        return _generated_list
+        """Return id on door sensors."""
+        if self._devices:
+            return (_id["id"] for _id in self._devices)
+
+    async def get_door_sensor_names(self, identity) -> str:
+        """Return name on door sensor."""
+        for _id in self._devices:
+            if _id["id"] == identity:
+                return _id["name"]
 
     async def triggeralarm(self, command, code) -> None:
         """Change state of alarm."""
@@ -240,17 +227,30 @@ class STLAlarmHub(object):
                 raise UpdateFailed
             self._panel = await response.json()
 
-        if not self._devices:
-            response = await self._request(URL_ALL_DEVICES)
-            if not response:
-                raise UpdateFailed
-            self._devices = await response.json()
+        response = await self._request(URL_ALL_DEVICES)
+        if not response:
+            raise UpdateFailed
+        _devicelist = await response.json()
+        self._devices = []
+        for device in _devicelist:
+            if (
+                device["zone_type"] == "PERIMETER" or device["zone_type"] == "DELAY_1"
+            ) and device["subtype"] == "MC303_VANISH":
+                _name = device["traits"]["location"]["name"]
+                _id = device["id"]
+                _status = STATE_OFF
+                if device["warnings"]:
+                    for warning in device["warnings"]:
+                        if warning["type"] == "OPENED":
+                            _status = STATE_ON
+                self._devices.append({"id": _id, "name": _name, "status": _status})
 
         response = await self._request(URL_STATUS)
         if response:
             json_data = await response.json()
             try:
                 self._state = json_data["partitions"][0]["state"]
+                self._status = ""
                 if "status" in json_data["partitions"][0]:
                     self._status = json_data["partitions"][0]["status"]
                 self._is_online = json_data["connected"]
@@ -391,7 +391,7 @@ class STLAlarmHub(object):
         return None
 
     @property
-    def alarm_state(self):
+    def alarm_state(self) -> str:
         """Return state of alarm."""
 
         if self._state == "DISARM":
@@ -409,26 +409,31 @@ class STLAlarmHub(object):
         return STATE_ALARM_PENDING
 
     @property
-    def alarm_changed_by(self):
+    def alarm_changed_by(self) -> str:
         """Return alarm changed by."""
         return self._changed_by
 
     @property
-    def alarm_id(self):
+    def alarm_id(self) -> str:
         """Return panel id."""
         return self._panel_id
 
     @property
-    def alarm_displayname(self):
+    def alarm_displayname(self) -> str:
         """Return friendly displayname."""
         return "Visonic " + str(self._panel_id)
 
     @property
-    def alarm_isonline(self):
+    def alarm_isonline(self) -> str:
         """Return is alarm online."""
         return self._is_online
 
     @property
-    def alarm_ready(self):
+    def alarm_ready(self) -> str:
         """Return is alarm ready."""
         return self._is_ready
+
+    @property
+    def get_doorsensor_states(self) -> dict:
+        """Return state of doorsensors."""
+        return {_device["id"]: _device["status"] for _device in self._devices}

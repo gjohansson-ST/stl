@@ -11,7 +11,7 @@ from homeassistant.components.alarm_control_panel.const import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_ALARM_PENDING
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
@@ -103,3 +103,12 @@ class STLAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         """Alarm away."""
         command = "full"
         await self._hub.triggeralarm(command, code=code)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_state = self._hub.alarm_state
+        self._attr_changed_by = self._hub.alarm_changed_by
+        self._isonline = self._hub.alarm_isonline
+        self._isready = self._hub.alarm_ready
+        self.async_write_ha_state()

@@ -7,7 +7,7 @@ from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_DOOR,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
@@ -32,10 +32,11 @@ async def async_setup_entry(
         "coordinator"
     ]
     add_entities: list = []
-    devices = stl_hub.get_door_sensors()
+    devices: list = await stl_hub.get_door_sensors()
     for device in devices:
+        devicename = await stl_hub.get_door_sensor_names(device)
         description = BinarySensorEntityDescription(
-            key=device["id"], name=device["name"], device_class=DEVICE_CLASS_DOOR
+            key=device, name=devicename, device_class=DEVICE_CLASS_DOOR
         )
         add_entities.append(STLBinarySensor(stl_hub, coordinator, description))
     async_add_entities(add_entities)
@@ -55,14 +56,16 @@ class STLBinarySensor(CoordinatorEntity, BinarySensorEntity):
         super().__init__(coordinator)
         self._attr_name = description.name
         self._attr_unique_id = f"stl_door_{str(description.key)}"
-        self._attr_state = self._hub.alarm_state
-        self._id = description.key
+        self.entity_description = description
+        self._attr_is_on = bool(
+            self._hub.get_doorsensor_states[description.key] == STATE_ON
+        )
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
         return {
-            "identifiers": {(DOMAIN, self.unique_id)},
+            "identifiers": {(DOMAIN, self._attr_unique_id)},
             "name": self._attr_name,
             "manufacturer": "Visonic",
             "model": "PowerMaster 360R",
@@ -70,11 +73,10 @@ class STLBinarySensor(CoordinatorEntity, BinarySensorEntity):
             "via_device": (DOMAIN, f"visonic_{str(self._hub.alarm_id)}"),
         }
 
-    @property
-    def is_on(self) -> bool:
-        """Return true if the binary sensor is on."""
-        _devices = self._hub.get_door_sensors()
-        for device in _devices:
-            if device["id"] == self._id:
-                return device["status"] == STATE_ON
-        return False
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_is_on = bool(
+            self._hub.get_doorsensor_states[self.entity_description.key] == STATE_ON
+        )
+        self.async_write_ha_state()
